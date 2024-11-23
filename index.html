@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Login</h1>
+    <input type="text" id="username" placeholder="Username" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button id="login">Login</button>
+
+    <h1>Subscribe</h1>
+    <select id="plan_type">
+        <option value="Bachelor">Bachelor</option>
+        <option value="Master">Master</option>
+    </select>
+    <select id="duration">
+        <option value="1 Hour">1 Hour</option>
+        <option value="7 Days">7 Days</option>
+        <option value="1 Month">1 Month</option>
+    </select>
+    <button id="subscribe">Subscribe</button>
+
+    <script>
+        // Initialize Stripe with your publishable key
+        const stripe = Stripe('pk_test_51Q5PD8KCDqLs4Ov4dm7bzgEIGL4i4BtksQMke8mvvu5UjJ7dRQeaOlcYqConbFQFOTXcoAvQaigCRqbT0BS5z9OS00hnRl1F5t');  // Replace with your actual publishable key
+
+        // Function to log in and store token in localStorage
+        document.getElementById('login').addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('http://127.0.0.1:8000/check/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username,
+                    password
+                })
+            });
+
+            console.log('Login Response Status:', response.status);  // Log the status of the response
+
+            const data = await response.json();
+            console.log('Login Response Data:', data);  // Log the response data
+
+            if (response.ok) {
+                // Store the access token and user ID in localStorage
+                localStorage.setItem('accessToken', data.access);  // Store access token
+                localStorage.setItem('userId', data.user_id);  // Store user ID
+                console.log('Access Token and User ID stored:', data.access, data.user_id);
+
+                alert('Login successful!');
+            } else {
+                console.error('Login failed:', data.error || data);  // Log any errors
+                alert(data.error || 'Login failed');
+            }
+        });
+
+        // Function to subscribe and send token in the Authorization header
+        document.getElementById('subscribe').addEventListener('click', async () => {
+            const planType = document.getElementById('plan_type').value;
+            const duration = document.getElementById('duration').value;
+
+            // Retrieve the access token from localStorage
+            const accessToken = localStorage.getItem('accessToken');
+
+            if (!accessToken) {
+                alert('You need to log in first.');
+                return;
+            }
+
+            console.log('Subscribing with:', { planType, duration, accessToken });
+
+            const response = await fetch('http://127.0.0.1:8000/check/subscribe/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,  // Include JWT token in headers
+                },
+                body: JSON.stringify({
+                    plan_type: planType,
+                    duration: duration
+                })
+            });
+
+            const data = await response.json();
+            console.log('Subscription Response Status:', response.status);
+            console.log('Subscription Response Data:', data);  // Log the response data
+
+            if (response.ok) {
+                // Redirect to Stripe Checkout page
+                const sessionId = data.session_id;  // Make sure this is 'session_id', not 'sessionId'
+                const { error } = await stripe.redirectToCheckout({ sessionId });
+                if (error) {
+                    console.error('Error redirecting to checkout:', error);
+                }
+            } else {
+                alert(data.error || 'Subscription failed');
+            }
+        });
+    </script>
+</body>
+</html>
