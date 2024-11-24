@@ -8,6 +8,6 @@ from django.views.generic import TemplateView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('check/', include('check.urls')),  # Include the API URLs
-    re_path(r'^cryptomus_50002627.html$', TemplateView.as_view(template_name='cryptomus_50002627.html')),
+    re_path(r'^cryptomus_33a04e6f.html$', TemplateView.as_view(template_name='cryptomus_33a04e6f.html')),
 ]
 
